@@ -1,29 +1,27 @@
-use jay_config::embedded::grab_input_device;
-use jay_config::input::capability::CAP_KEYBOARD;
-use jay_config::input::get_seat;
-use jay_config::keyboard::syms::{SYM_b, SYM_r, SYM_y};
-use jay_config::reload;
+use jay_config::keyboard::syms::SYM_Return;
 use {
     chrono::{format::StrftimeItems, Local, Timelike},
     jay_config::{
         config,
         drm::{get_connector, on_connector_connected, on_graphics_initialized, on_new_connector},
+        embedded::grab_input_device,
         get_timer, get_workspace,
         input::{
-            capability::CAP_POINTER, input_devices, on_new_input_device, InputDevice,
-            Seat,
+            capability::{CAP_KEYBOARD, CAP_POINTER},
+            get_seat, input_devices, on_new_input_device, InputDevice, Seat,
         },
         keyboard::{
+            keymap::parse_keymap,
             mods::{Modifiers, ALT, CTRL, SHIFT},
             syms::{
-                SYM_Super_L, SYM_a, SYM_c, SYM_d, SYM_e, SYM_f, SYM_h, SYM_j, SYM_k, SYM_l, SYM_m,
-                SYM_o, SYM_p, SYM_q, SYM_t, SYM_u, SYM_v, SYM_F1, SYM_F10, SYM_F11, SYM_F12,
-                SYM_F13, SYM_F14, SYM_F15, SYM_F16, SYM_F17, SYM_F18, SYM_F19, SYM_F2, SYM_F20,
-                SYM_F21, SYM_F22, SYM_F23, SYM_F24, SYM_F25, SYM_F3, SYM_F4, SYM_F5, SYM_F6,
-                SYM_F7, SYM_F8, SYM_F9,
+                SYM_Super_L, SYM_a, SYM_b, SYM_c, SYM_d, SYM_e, SYM_f, SYM_h, SYM_j, SYM_k, SYM_l,
+                SYM_m, SYM_o, SYM_p, SYM_q, SYM_r, SYM_t, SYM_u, SYM_v, SYM_y, SYM_F1, SYM_F10,
+                SYM_F11, SYM_F12, SYM_F13, SYM_F14, SYM_F15, SYM_F16, SYM_F17, SYM_F18, SYM_F19,
+                SYM_F2, SYM_F20, SYM_F21, SYM_F22, SYM_F23, SYM_F24, SYM_F25, SYM_F3, SYM_F4,
+                SYM_F5, SYM_F6, SYM_F7, SYM_F8, SYM_F9,
             },
         },
-        quit, set_env,
+        quit, reload, set_env,
         status::set_status,
         switch_to_vt,
         Axis::{Horizontal, Vertical},
@@ -62,6 +60,7 @@ fn configure_seat(s: Seat) {
     s.bind(MOD | SHIFT | SYM_f, move || s.toggle_floating());
 
     s.bind(SYM_Super_L, || Command::new("alacritty").spawn());
+    s.bind(MOD | SYM_Return, || Command::new("alacritty").spawn());
 
     s.bind(MOD | SYM_p, || Command::new("bemenu-run").spawn());
 
@@ -99,7 +98,6 @@ fn configure_seat(s: Seat) {
     fn do_grab(s: Seat, grab: bool) {
         for device in s.input_devices() {
             if device.has_capability(CAP_KEYBOARD) {
-
                 log::info!(
                     "{}rabbing keyboard {:?}",
                     if grab { "G" } else { "Ung" },
@@ -121,6 +119,7 @@ fn configure_seat(s: Seat) {
 
 pub fn configure() {
     let seat = get_seat("default");
+    seat.set_keymap(parse_keymap(include_str!("keymap.xkb")));
     configure_seat(seat);
     let handle_input_device = move |device: InputDevice| {
         if device.has_capability(CAP_POINTER) {
