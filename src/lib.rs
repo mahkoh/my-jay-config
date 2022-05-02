@@ -1,4 +1,3 @@
-use jay_config::keyboard::syms::SYM_Return;
 use {
     chrono::{format::StrftimeItems, Local, Timelike},
     jay_config::{
@@ -47,20 +46,17 @@ fn configure_seat(s: Seat) {
     s.bind(MOD | SYM_d, move || s.create_split(Horizontal));
     s.bind(MOD | SYM_v, move || s.create_split(Vertical));
 
-    s.bind(MOD | SYM_t, move || s.set_split(s.split().other()));
-
-    s.bind(MOD | SYM_m, move || s.set_mono(!s.mono()));
-
-    s.bind(MOD | SYM_f, move || s.focus_parent());
-
+    s.bind(MOD | SYM_t, move || s.toggle_split());
+    s.bind(MOD | SYM_m, move || s.toggle_mono());
     s.bind(MOD | SYM_u, move || s.toggle_fullscreen());
+    s.bind(MOD | SHIFT | SYM_f, move || s.toggle_floating());
+    s.bind(MOD | SYM_f, move || s.focus_parent());
 
     s.bind(MOD | SHIFT | SYM_c, move || s.close());
 
-    s.bind(MOD | SHIFT | SYM_f, move || s.toggle_floating());
-
-    s.bind(SYM_Super_L, || Command::new("alacritty").spawn());
-    s.bind(MOD | SYM_Return, || Command::new("alacritty").spawn());
+    let alacritty = || Command::new("alacritty").spawn();
+    s.bind(SYM_Super_L, alacritty);
+    // s.bind(MOD | SYM_Return, alacritty);
 
     s.bind(MOD | SYM_p, || Command::new("bemenu-run").spawn());
 
@@ -85,15 +81,14 @@ fn configure_seat(s: Seat) {
         s.bind(MOD | SHIFT | sym, move || s.set_workspace(ws));
     }
 
-    s.bind(MOD | SYM_a, || {
-        Command::new("spotify-remote").arg("a").spawn()
-    });
-    s.bind(MOD | SYM_o, || {
-        Command::new("spotify-remote").arg("o").spawn()
-    });
-    s.bind(MOD | SYM_e, || {
-        Command::new("spotify-remote").arg("e").spawn()
-    });
+    let spotify = |sym, arg| {
+        s.bind(MOD | sym, move || {
+            Command::new("spotify-remote").arg(arg).spawn()
+        })
+    };
+    spotify(SYM_a, "a");
+    spotify(SYM_o, "o");
+    spotify(SYM_e, "e");
 
     fn do_grab(s: Seat, grab: bool) {
         for device in s.input_devices() {
@@ -117,7 +112,7 @@ fn configure_seat(s: Seat) {
     do_grab(s, false);
 }
 
-pub fn configure() {
+fn setup_seats() {
     let seat = get_seat("default");
     seat.set_keymap(parse_keymap(include_str!("keymap.xkb")));
     configure_seat(seat);
@@ -130,7 +125,9 @@ pub fn configure() {
     };
     input_devices().into_iter().for_each(handle_input_device);
     on_new_input_device(handle_input_device);
+}
 
+fn setup_outputs() {
     let handle_connectors_changed = || {
         let left = get_connector("HDMI-A-1");
         let right = get_connector("DP-1");
@@ -142,25 +139,31 @@ pub fn configure() {
     on_new_connector(move |_| handle_connectors_changed());
     on_connector_connected(move |_| handle_connectors_changed());
     handle_connectors_changed();
+}
 
-    {
-        let time_format: Vec<_> = StrftimeItems::new("%Y-%m-%d %H:%M:%S").collect();
-        let update_status = move || {
-            let status = format!("{}", Local::now().format_with_items(time_format.iter()),);
-            set_status(&status);
-        };
-        update_status();
-        let initial = {
-            let now = Local::now();
-            5000 - (now.second() * 1000 + now.timestamp_subsec_millis()) % 5000
-        };
-        let timer = get_timer("status_timer");
-        timer.program(
-            Duration::from_millis(initial as u64),
-            Some(Duration::from_secs(5)),
-        );
-        timer.on_tick(update_status);
-    }
+fn setup_status() {
+    let time_format: Vec<_> = StrftimeItems::new("%Y-%m-%d %H:%M:%S").collect();
+    let update_status = move || {
+        let status = format!("{}", Local::now().format_with_items(time_format.iter()),);
+        set_status(&status);
+    };
+    update_status();
+    let initial = {
+        let now = Local::now();
+        5000 - (now.second() * 1000 + now.timestamp_subsec_millis()) % 5000
+    };
+    let timer = get_timer("status_timer");
+    timer.program(
+        Duration::from_millis(initial as u64),
+        Some(Duration::from_secs(5)),
+    );
+    timer.on_tick(update_status);
+}
+
+fn configure() {
+    setup_seats();
+    setup_outputs();
+    setup_status();
 
     set_env("GTK_THEME", "Adwaita:dark");
 
