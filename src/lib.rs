@@ -1,17 +1,17 @@
 use {
-    chrono::{format::StrftimeItems, Local, Timelike},
+    chrono::{format::StrftimeItems, Local},
     jay_config::{
         config,
-        drm::{get_connector, on_connector_connected, on_graphics_initialized, on_new_connector},
         embedded::grab_input_device,
-        get_timer, get_workspace,
+        exec::{set_env, Command},
+        get_workspace,
         input::{
             capability::{CAP_KEYBOARD, CAP_POINTER},
             get_seat, input_devices, on_new_input_device, InputDevice, Seat,
         },
         keyboard::{
-            keymap::parse_keymap,
             mods::{Modifiers, ALT, CTRL, SHIFT},
+            parse_keymap,
             syms::{
                 SYM_Super_L, SYM_a, SYM_b, SYM_c, SYM_d, SYM_e, SYM_f, SYM_h, SYM_j, SYM_k, SYM_l,
                 SYM_m, SYM_o, SYM_p, SYM_q, SYM_r, SYM_t, SYM_u, SYM_v, SYM_y, SYM_F1, SYM_F10,
@@ -20,11 +20,12 @@ use {
                 SYM_F5, SYM_F6, SYM_F7, SYM_F8, SYM_F9,
             },
         },
-        quit, reload, set_env,
+        quit, reload,
         status::set_status,
         switch_to_vt,
+        timer::{duration_until_wall_clock_is_multiple_of, get_timer},
+        video::{get_connector, on_connector_connected, on_graphics_initialized, on_new_connector},
         Axis::{Horizontal, Vertical},
-        Command,
         Direction::{Down, Left, Right, Up},
     },
     std::time::Duration,
@@ -148,15 +149,9 @@ fn setup_status() {
         set_status(&status);
     };
     update_status();
-    let initial = {
-        let now = Local::now();
-        5000 - (now.second() * 1000 + now.timestamp_subsec_millis()) % 5000
-    };
+    let period = Duration::from_secs(5);
     let timer = get_timer("status_timer");
-    timer.program(
-        Duration::from_millis(initial as u64),
-        Some(Duration::from_secs(5)),
-    );
+    timer.repeated(duration_until_wall_clock_is_multiple_of(period), period);
     timer.on_tick(update_status);
 }
 
