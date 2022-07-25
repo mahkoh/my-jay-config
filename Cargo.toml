@@ -10,3 +10,4 @@ crate-type = ["lib", "cdylib"]
 jay-config = { path = "../jay/jay-config" }
 log = "0.4.14"
 chrono = "0.4.19"
+sysinfo = "0.24.2"
