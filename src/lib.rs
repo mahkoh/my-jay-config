@@ -2,22 +2,21 @@ use {
     chrono::{format::StrftimeItems, Local},
     jay_config::{
         config,
-        embedded::grab_input_device,
         exec::{set_env, Command},
         get_workspace,
         input::{
-            capability::{CAP_KEYBOARD, CAP_POINTER},
-            get_seat, input_devices, on_new_input_device, InputDevice, Seat,
+            capability::CAP_POINTER, get_seat, input_devices, on_new_input_device, InputDevice,
+            Seat,
         },
         keyboard::{
             mods::{Modifiers, ALT, CTRL, SHIFT},
             parse_keymap,
             syms::{
-                SYM_Super_L, SYM_a, SYM_b, SYM_c, SYM_d, SYM_e, SYM_f, SYM_h, SYM_i, SYM_j, SYM_k,
-                SYM_l, SYM_m, SYM_n, SYM_o, SYM_p, SYM_q, SYM_r, SYM_t, SYM_u, SYM_v, SYM_y,
-                SYM_F1, SYM_F10, SYM_F11, SYM_F12, SYM_F13, SYM_F14, SYM_F15, SYM_F16, SYM_F17,
-                SYM_F18, SYM_F19, SYM_F2, SYM_F20, SYM_F21, SYM_F22, SYM_F23, SYM_F24, SYM_F25,
-                SYM_F3, SYM_F4, SYM_F5, SYM_F6, SYM_F7, SYM_F8, SYM_F9,
+                SYM_Super_L, SYM_a, SYM_c, SYM_d, SYM_e, SYM_f, SYM_h, SYM_i, SYM_j, SYM_k, SYM_l,
+                SYM_m, SYM_n, SYM_o, SYM_p, SYM_q, SYM_r, SYM_t, SYM_u, SYM_v, SYM_y, SYM_F1,
+                SYM_F10, SYM_F11, SYM_F12, SYM_F13, SYM_F14, SYM_F15, SYM_F16, SYM_F17, SYM_F18,
+                SYM_F19, SYM_F2, SYM_F20, SYM_F21, SYM_F22, SYM_F23, SYM_F24, SYM_F25, SYM_F3,
+                SYM_F4, SYM_F5, SYM_F6, SYM_F7, SYM_F8, SYM_F9,
             },
         },
         on_idle, quit, reload,
@@ -113,27 +112,6 @@ fn configure_seat(s: Seat) {
     spotify(SYM_a, "a");
     spotify(SYM_o, "o");
     spotify(SYM_e, "e");
-
-    fn do_grab(s: Seat, grab: bool) {
-        for device in s.input_devices() {
-            if device.has_capability(CAP_KEYBOARD) {
-                log::info!(
-                    "{}rabbing keyboard {:?}",
-                    if grab { "G" } else { "Ung" },
-                    device.0
-                );
-                grab_input_device(device, grab);
-            }
-        }
-        if grab {
-            s.unbind(SYM_y);
-            s.bind(MOD | SYM_b, move || do_grab(s, false));
-        } else {
-            s.unbind(MOD | SYM_b);
-            s.bind(SYM_y, move || do_grab(s, true));
-        }
-    }
-    do_grab(s, false);
 }
 
 fn setup_seats() {
@@ -154,7 +132,7 @@ fn setup_seats() {
 
 fn arrange_outputs() {
     let left = get_connector("HDMI-A-1");
-    let right = get_connector("DP-1");
+    let right = get_connector("DP-3");
     if left.connected() && right.connected() {
         left.set_position(0, 0);
         right.set_position(left.width(), 0);
